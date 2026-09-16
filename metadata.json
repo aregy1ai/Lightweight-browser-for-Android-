@@ -1,0 +1,6 @@
+{
+  "name": "DeepSeek Exporter",
+  "description": "Android application to open DeepSeek chat sessions in WebView, extract conversation messages via JavaScript DOM inspection, preview, and export to TXT, Markdown, or JSON with local history tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

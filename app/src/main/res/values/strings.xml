@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">DeepSeek Exporter</string>
+    <string name="home_title">مصدّر محادثات ديب سيك</string>
+    <string name="home_subtitle">افتح محادثتك، استخرج النصوص والأكواد، وصدّرها بصيغة TXT أو Markdown أو JSON بنقرة واحدة</string>
+    <string name="url_input_label">رابط محادثة ديب سيك</string>
+    <string name="open_chat">فتح في المتصفح</string>
+    <string name="default_url">https://chat.deepseek.com</string>
+    <string name="extract_button">استخراج المحادثة</string>
+    <string name="export_button">تصدير الملف</string>
+    <string name="preview_title">معاينة المحادثة</string>
+    <string name="history_title">سجل التصدير</string>
+</resources>
