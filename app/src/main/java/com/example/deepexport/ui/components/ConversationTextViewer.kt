@@ -1,8 +1,13 @@
 package com.example.deepexport.ui.components
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,11 +16,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Person
@@ -23,6 +31,7 @@ import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -34,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -41,7 +51,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.deepexport.domain.model.ChatConversation
 import com.example.deepexport.domain.model.ChatMessage
+import com.example.deepexport.domain.model.ContentBlock
 import com.example.deepexport.domain.model.MessageRole
+import com.example.deepexport.domain.model.Platform
 
 @Composable
 fun ConversationTextViewer(
@@ -71,7 +83,7 @@ fun ConversationTextViewer(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "عدد الرسائل: ${conversation.messages.size}",
+                        text = "المنصة: ${conversation.platform.displayName} • عدد الرسائل: ${conversation.messages.size}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
                     )
@@ -80,7 +92,11 @@ fun ConversationTextViewer(
         }
 
         itemsIndexed(conversation.messages) { index, message ->
-            MessageCard(index = index + 1, message = message)
+            MessageCard(
+                index = index + 1,
+                message = message,
+                platform = conversation.platform
+            )
         }
     }
 }
@@ -88,9 +104,11 @@ fun ConversationTextViewer(
 @Composable
 fun MessageCard(
     index: Int,
-    message: MessageRoleAware,
+    message: ChatMessage,
+    platform: Platform = Platform.DEEPSEEK,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val isUser = message.role == MessageRole.User
     val containerColor = if (isUser) {
         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
@@ -113,15 +131,40 @@ fun MessageCard(
             ) {
                 Icon(
                     imageVector = if (isUser) Icons.Default.Person else Icons.Default.SmartToy,
-                    contentDescription = if (isUser) "المستخدم" else "ديب سيك",
+                    contentDescription = if (isUser) "المستخدم" else platform.displayName,
                     tint = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (isUser) "المستخدم (#$index)" else "DeepSeek AI (#$index)",
+                    text = if (isUser) "المستخدم (#$index)" else "${platform.displayName} (#$index)",
                     style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
                 )
+
+                IconButton(
+                    onClick = {
+                        val fullText = buildString {
+                            if (!message.thinkingContent.isNullOrBlank()) {
+                                appendLine("[Thinking Process]")
+                                appendLine(message.thinkingContent)
+                                appendLine()
+                            }
+                            append(message.content)
+                        }
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        clipboard.setPrimaryClip(ClipData.newPlainText("Chat Message", fullText))
+                        Toast.makeText(context, "تم نسخ محتوى الرسالة", Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = "نسخ الرسالة",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             // Thinking process block (collapsible)
@@ -132,18 +175,132 @@ fun MessageCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Main message content
-            Text(
-                text = message.content,
-                style = MaterialTheme.typography.bodyMedium,
-                lineHeight = 20.sp
-            )
+            // Content or Structured Content Blocks
+            if (message.contentBlocks.isNotEmpty()) {
+                message.contentBlocks.forEach { block ->
+                    when (block) {
+                        is ContentBlock.Text -> {
+                            Text(
+                                text = block.text,
+                                style = MaterialTheme.typography.bodyMedium,
+                                lineHeight = 20.sp,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
+                        is ContentBlock.Code -> {
+                            CodeBlockViewer(code = block.code, language = block.language)
+                        }
+                        is ContentBlock.Thinking -> {
+                            // Already shown above
+                        }
+                        is ContentBlock.Quote -> {
+                            Surface(
+                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(4.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = block.text,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+                        }
+                        is ContentBlock.Link -> {
+                            Text(
+                                text = "${block.text}: ${block.url}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(vertical = 2.dp)
+                            )
+                        }
+                        is ContentBlock.Image -> {
+                            Text(
+                                text = "🖼️ [صورة: ${block.alt ?: block.url}]",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.padding(vertical = 2.dp)
+                            )
+                        }
+                        is ContentBlock.File -> {
+                            Text(
+                                text = "📎 [ملف: ${block.name} ${block.size ?: ""}]",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.padding(vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+            } else {
+                Text(
+                    text = message.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    lineHeight = 20.sp
+                )
+            }
         }
     }
 }
 
-// Interface or extension helper so MessageCard works directly with ChatMessage
-typealias MessageRoleAware = ChatMessage
+@Composable
+private fun CodeBlockViewer(code: String, language: String?) {
+    val context = LocalContext.current
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.inverseSurface,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = language?.ifBlank { "code" } ?: "code",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.inverseOnSurface.copy(alpha = 0.7f),
+                    fontFamily = FontFamily.Monospace
+                )
+                IconButton(
+                    onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        clipboard.setPrimaryClip(ClipData.newPlainText("Code", code))
+                        Toast.makeText(context, "تم نسخ الكود", Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = "نسخ الكود",
+                        tint = MaterialTheme.colorScheme.inverseOnSurface,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+            ) {
+                Text(
+                    text = code,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 12.sp
+                    ),
+                    color = MaterialTheme.colorScheme.inverseOnSurface
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun ThinkingBlock(thinkingContent: String) {
@@ -163,7 +320,7 @@ private fun ThinkingBlock(thinkingContent: String) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "🧠 سلسلة التفكير (Thinking Process)",
+                    text = "🧠 تفكير النموذج (Thinking Process)",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.primary,

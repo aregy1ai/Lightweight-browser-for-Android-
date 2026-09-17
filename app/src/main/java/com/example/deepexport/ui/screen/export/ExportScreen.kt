@@ -17,7 +17,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
@@ -137,7 +136,8 @@ fun ExportScreen(
                         val explanation = when (state.format) {
                             ExportFormat.TXT -> "نص بسيط ومتوافق مع أي جهاز أو محرر نصوص دون الحاجة لبرامج مخصصة."
                             ExportFormat.MARKDOWN -> "الصيغة الموصى بها لمحررات Obsidian وNotion وGitHub؛ تحافظ على تنسيق الكود والروابط وعناوين الأسئلة."
-                            ExportFormat.JSON -> "تصدير منظم للأرقام والرسائل وسلسلة التفكير مناسب للمطورين والتحليل البرمجي."
+                            ExportFormat.JSON -> "تصدير منظم للرسائل وسلاسل التفكير مناسب للمطورين والتحليل البرمجي."
+                            ExportFormat.HTML -> "صفحة ويب مصممة وجاهزة للعرض الفوري والمشاركة في أي متصفح مع الحفاظ على الألوان والأكواد وسلاسل التفكير."
                         }
                         Text(
                             text = explanation,
@@ -223,20 +223,24 @@ fun ExportScreen(
                                             }
                                         }
                                     },
-                                    modifier = Modifier.weight(1f).testTag("export_share_button")
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("export_share_button")
                                 ) {
                                     Icon(imageVector = Icons.Default.Share, contentDescription = null)
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("مشاركة الملف")
+                                    Text("مشاركة")
                                 }
 
                                 OutlinedButton(
                                     onClick = onViewHistoryClick,
-                                    modifier = Modifier.weight(1f).testTag("export_go_history_button")
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("export_go_history_button")
                                 ) {
                                     Icon(imageVector = Icons.Default.History, contentDescription = null)
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("سجل التصدير")
+                                    Text("السجل")
                                 }
                             }
                         }

@@ -6,15 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.example.deepexport.DeepSeekExportApp
 import com.example.deepexport.core.AppContainer
 import com.example.deepexport.core.AppResult
+import com.example.deepexport.data.extraction.PlatformDetector
 import com.example.deepexport.domain.model.ChatConversation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
-import kotlin.coroutines.resume
 
 class BrowserViewModel(
     private val container: AppContainer = DeepSeekExportApp.instance.container
@@ -24,7 +22,12 @@ class BrowserViewModel(
     val uiState: StateFlow<BrowserUiState> = _uiState.asStateFlow()
 
     fun setUrl(url: String) {
-        _uiState.value = _uiState.value.copy(url = url, error = null)
+        val platform = PlatformDetector.detect(url, _uiState.value.webPageTitle)
+        _uiState.value = _uiState.value.copy(
+            url = url,
+            detectedPlatform = platform,
+            error = null
+        )
     }
 
     fun setLoading(loading: Boolean) {
@@ -32,7 +35,15 @@ class BrowserViewModel(
     }
 
     fun setPageTitle(title: String) {
-        _uiState.value = _uiState.value.copy(webPageTitle = title)
+        val platform = PlatformDetector.detect(_uiState.value.url, title)
+        _uiState.value = _uiState.value.copy(
+            webPageTitle = title,
+            detectedPlatform = platform
+        )
+    }
+
+    fun toggleLongConversationScroll(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(enableLongConversationScroll = enabled)
     }
 
     fun dismissError() {
@@ -41,31 +52,37 @@ class BrowserViewModel(
 
     fun extractFromWebView(webView: WebView, onSuccess: (ChatConversation) -> Unit) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isExtracting = true, error = null)
+            _uiState.value = _uiState.value.copy(
+                isExtracting = true,
+                statusMessage = "جارٍ تهيئة المحرك...",
+                error = null
+            )
 
-            val currentUrl = webView.url ?: _uiState.value.url
-            val script = container.deepSeekWebRepository.getExtractionScript()
-
-            val rawResult = withContext(Dispatchers.Main) {
-                suspendCancellableCoroutine<String> { continuation ->
-                    webView.evaluateJavascript(script) { result ->
-                        continuation.resume(result ?: "")
-                    }
+            val coordinator = container.extractionCoordinator
+            val result = coordinator.extract(
+                webView = webView,
+                enableScrollLoader = _uiState.value.enableLongConversationScroll,
+                onStatusUpdate = { status ->
+                    _uiState.value = _uiState.value.copy(statusMessage = status)
                 }
-            }
+            )
 
-            val parseResult = container.deepSeekWebRepository.parseResult(rawResult, currentUrl)
-            when (parseResult) {
+            when (result) {
                 is AppResult.Success -> {
-                    val conversation = parseResult.data
+                    val extractionResult = result.data
+                    val conversation = extractionResult.conversation
                     container.setActiveConversation(conversation)
-                    // Auto-save to local history
+
+                    // Auto-save to local history in Room DB
                     launch(Dispatchers.IO) {
                         container.saveConversationUseCase(conversation)
                     }
+
                     _uiState.value = _uiState.value.copy(
                         conversation = conversation,
+                        diagnostics = extractionResult.diagnostics,
                         isExtracting = false,
+                        statusMessage = "",
                         error = null
                     )
                     onSuccess(conversation)
@@ -73,7 +90,8 @@ class BrowserViewModel(
                 is AppResult.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isExtracting = false,
-                        error = parseResult.message
+                        statusMessage = "",
+                        error = result.message
                     )
                 }
                 is AppResult.Loading -> Unit

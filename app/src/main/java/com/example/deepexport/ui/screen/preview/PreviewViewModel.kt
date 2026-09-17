@@ -41,6 +41,7 @@ class PreviewViewModel(
             ExportFormat.TXT -> container.txtExporter.export(conversation)
             ExportFormat.MARKDOWN -> container.markdownExporter.export(conversation)
             ExportFormat.JSON -> container.jsonExporter.export(conversation)
+            ExportFormat.HTML -> container.htmlExporter.export(conversation)
         }
         _uiState.value = _uiState.value.copy(formattedPreviewText = text)
     }

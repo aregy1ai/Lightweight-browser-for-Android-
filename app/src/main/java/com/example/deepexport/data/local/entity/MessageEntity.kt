@@ -22,7 +22,8 @@ data class MessageEntity(
     val conversationId: String,
     val role: String,
     val content: String,
-    val thinkingContent: String?,
-    val model: String?,
-    val timestamp: Long
+    val thinkingContent: String? = null,
+    val model: String? = null,
+    val timestamp: Long? = null,
+    val orderIndex: Int = 0
 )

@@ -9,6 +9,7 @@ class TxtExporter {
         val sb = StringBuilder()
         sb.appendLine("==================================================")
         sb.appendLine("عنوان المحادثة: ${conversation.title}")
+        sb.appendLine("المنصة: ${conversation.platform.displayName}")
         sb.appendLine("المصدر: ${conversation.sourceUrl}")
         sb.appendLine("تاريخ التصدير: ${conversation.createdAt.toFormattedDate()}")
         sb.appendLine("عدد الرسائل: ${conversation.messages.size}")
@@ -18,11 +19,12 @@ class TxtExporter {
         conversation.messages.forEachIndexed { index, msg ->
             val sender = when (msg.role) {
                 MessageRole.User -> "👤 المستخدم (User)"
-                MessageRole.Assistant -> "🤖 ديب سيك (DeepSeek)"
+                MessageRole.Assistant -> "🤖 ${conversation.platform.displayName} (Assistant)"
                 MessageRole.System -> "⚙️ النظام (System)"
+                MessageRole.Unknown -> "❓ رسالة (${msg.role.name})"
             }
             sb.appendLine("--- [$sender] (${index + 1}/${conversation.messages.size}) ---")
-            
+
             if (!msg.thinkingContent.isNullOrBlank()) {
                 sb.appendLine("💭 [سلسلة التفكير - Thinking Process]:")
                 sb.appendLine(msg.thinkingContent)
@@ -34,7 +36,7 @@ class TxtExporter {
         }
 
         sb.appendLine("==================================================")
-        sb.appendLine("تم التصدير بواسطة تطبيق DeepSeek Chat Exporter")
+        sb.appendLine("تم التصدير بواسطة تطبيق AI Chat Exporter")
         return sb.toString()
     }
 }

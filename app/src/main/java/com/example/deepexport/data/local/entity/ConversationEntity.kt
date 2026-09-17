@@ -8,7 +8,9 @@ data class ConversationEntity(
     @PrimaryKey val id: String,
     val title: String,
     val sourceUrl: String,
-    val rawJsonMessages: String,
+    val platform: String,
     val messageCount: Int,
-    val createdAt: Long
+    val rawJsonMessages: String,
+    val createdAt: Long,
+    val updatedAt: Long = createdAt
 )

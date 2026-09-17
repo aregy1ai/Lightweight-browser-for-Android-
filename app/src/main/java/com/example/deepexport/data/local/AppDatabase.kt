@@ -8,9 +8,14 @@ import com.example.deepexport.data.local.dao.ConversationDao
 import com.example.deepexport.data.local.dao.ExportHistoryDao
 import com.example.deepexport.data.local.entity.ConversationEntity
 import com.example.deepexport.data.local.entity.ExportHistoryEntity
+import com.example.deepexport.data.local.entity.MessageEntity
 
 @Database(
-    entities = [ConversationEntity::class, ExportHistoryEntity::class],
+    entities = [
+        ConversationEntity::class,
+        MessageEntity::class,
+        ExportHistoryEntity::class
+    ],
     version = 1,
     exportSchema = false
 )

@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.deepexport.DeepSeekExportApp
 import com.example.deepexport.core.AppContainer
+import com.example.deepexport.data.extraction.PlatformDetector
+import com.example.deepexport.domain.model.ChatConversation
+import com.example.deepexport.domain.model.Platform
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,17 +30,39 @@ class HomeViewModel(
         viewModelScope.launch {
             container.conversationRepository.getSavedConversations().collect { saved ->
                 _uiState.value = _uiState.value.copy(
-                    savedConversationCount = saved.size
+                    savedConversationCount = saved.size,
+                    recentConversations = saved.take(5)
                 )
             }
         }
     }
 
     fun updateUrl(url: String) {
-        _uiState.value = _uiState.value.copy(url = url, error = null)
+        val detected = PlatformDetector.detectFromUrl(url)
+        _uiState.value = _uiState.value.copy(
+            url = url,
+            selectedPlatform = detected,
+            error = null
+        )
+    }
+
+    fun selectPlatform(platform: Platform) {
+        _uiState.value = _uiState.value.copy(
+            url = platform.defaultUrl,
+            selectedPlatform = platform,
+            error = null
+        )
+    }
+
+    fun openSavedConversation(conversation: ChatConversation, onReady: () -> Unit) {
+        container.setActiveConversation(conversation)
+        onReady()
     }
 
     fun resetToDefaultUrl() {
-        _uiState.value = _uiState.value.copy(url = "https://chat.deepseek.com")
+        _uiState.value = _uiState.value.copy(
+            url = Platform.DEEPSEEK.defaultUrl,
+            selectedPlatform = Platform.DEEPSEEK
+        )
     }
 }

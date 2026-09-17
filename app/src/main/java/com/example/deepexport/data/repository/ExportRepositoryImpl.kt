@@ -3,6 +3,7 @@ package com.example.deepexport.data.repository
 import com.example.deepexport.core.AppResult
 import com.example.deepexport.core.sanitizeFileName
 import com.example.deepexport.data.export.FileStore
+import com.example.deepexport.data.export.HtmlExporter
 import com.example.deepexport.data.export.JsonExporter
 import com.example.deepexport.data.export.MarkdownExporter
 import com.example.deepexport.data.export.TxtExporter
@@ -22,7 +23,8 @@ class ExportRepositoryImpl(
     private val exportHistoryDao: ExportHistoryDao,
     private val txtExporter: TxtExporter = TxtExporter(),
     private val markdownExporter: MarkdownExporter = MarkdownExporter(),
-    private val jsonExporter: JsonExporter = JsonExporter()
+    private val jsonExporter: JsonExporter = JsonExporter(),
+    private val htmlExporter: HtmlExporter = HtmlExporter()
 ) : ExportRepository {
 
     override suspend fun export(
@@ -35,17 +37,19 @@ class ExportRepositoryImpl(
                 ExportFormat.TXT -> txtExporter.export(conversation)
                 ExportFormat.MARKDOWN -> markdownExporter.export(conversation)
                 ExportFormat.JSON -> jsonExporter.export(conversation)
+                ExportFormat.HTML -> htmlExporter.export(conversation)
             }
 
-            val safeBaseName = fileName.sanitizeFileName()
+            val safeBaseName = fileName.sanitizeFileName().ifBlank { "ai_chat_export" }
             val actualFileName = "$safeBaseName.${format.extension}"
 
             // Save to app external storage
             val file = fileStore.saveToAppExternal(actualFileName, content)
             // Also attempt to save to Downloads directory for easy user access
-            val downloadsUri = fileStore.saveToDownloads(actualFileName, content, format.mimeType)
+            fileStore.saveToDownloads(actualFileName, content, format.mimeType)
 
             val exportEntity = ExportHistoryEntity(
+                conversationId = conversation.id,
                 title = conversation.title,
                 fileName = actualFileName,
                 filePath = file.absolutePath,

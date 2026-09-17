@@ -1,6 +1,8 @@
 package com.example.deepexport.domain.usecase
 
 import com.example.deepexport.core.AppResult
+import com.example.deepexport.data.extraction.PlatformDetector
+import com.example.deepexport.data.extraction.pipeline.TextProcessingPipeline
 import com.example.deepexport.domain.model.ChatConversation
 import com.example.deepexport.domain.model.ChatMessage
 import com.example.deepexport.domain.model.MessageRole
@@ -19,7 +21,6 @@ class ExtractConversationUseCase {
             // Clean JS returned string if it's JSON stringified
             var cleanInput = rawJsonOrText.trim()
             if (cleanInput.startsWith("\"") && cleanInput.endsWith("\"")) {
-                // In case evaluateJavascript quoted the string
                 cleanInput = cleanInput.substring(1, cleanInput.length - 1)
                     .replace("\\\"", "\"")
                     .replace("\\n", "\n")
@@ -27,7 +28,8 @@ class ExtractConversationUseCase {
             }
 
             val json = JSONObject(cleanInput)
-            val title = json.optString("title").ifBlank { "DeepSeek Chat" }
+            val platform = PlatformDetector.detect(currentUrl, json.optString("title"))
+            val title = json.optString("title").ifBlank { "${platform.displayName} Chat" }
             val url = json.optString("url").ifBlank { currentUrl }
             val messagesArray = json.optJSONArray("messages")
 
@@ -35,13 +37,7 @@ class ExtractConversationUseCase {
             if (messagesArray != null && messagesArray.length() > 0) {
                 for (i in 0 until messagesArray.length()) {
                     val msgObj = messagesArray.getJSONObject(i)
-                    val roleStr = msgObj.optString("role", "User").lowercase()
-                    val role = when {
-                        roleStr.contains("user") || roleStr.contains("human") -> MessageRole.User
-                        roleStr.contains("assist") || roleStr.contains("bot") || roleStr.contains("deepseek") -> MessageRole.Assistant
-                        roleStr.contains("system") -> MessageRole.System
-                        else -> if (i % 2 == 0) MessageRole.User else MessageRole.Assistant
-                    }
+                    val role = MessageRole.fromString(msgObj.optString("role", "Assistant"))
                     val content = msgObj.optString("content").trim()
                     val thinking = msgObj.optString("thinking").takeIf { it.isNotBlank() }
                     val timestamp = if (msgObj.has("timestamp")) msgObj.optLong("timestamp") else null
@@ -65,13 +61,15 @@ class ExtractConversationUseCase {
                 )
             }
 
-            AppResult.Success(
-                ChatConversation(
-                    title = title,
-                    sourceUrl = url,
-                    messages = messages
-                )
+            val rawConversation = ChatConversation(
+                title = title,
+                sourceUrl = url,
+                platform = platform,
+                messages = messages
             )
+
+            val processed = TextProcessingPipeline.process(rawConversation)
+            AppResult.Success(processed)
         } catch (e: Exception) {
             AppResult.Error(e, "فشل في معالجة بيانات المحادثة: ${e.localizedMessage}")
         }

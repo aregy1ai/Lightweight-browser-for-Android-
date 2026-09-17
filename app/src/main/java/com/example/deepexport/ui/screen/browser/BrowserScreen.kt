@@ -5,6 +5,7 @@ import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,14 +14,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -28,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -50,6 +56,8 @@ import com.example.deepexport.ui.components.LoadingOverlay
 fun BrowserScreen(
     state: BrowserUiState,
     onUrlChange: (String) -> Unit,
+    onPageTitleChange: (String) -> Unit = {},
+    onToggleScrollLoader: (Boolean) -> Unit = {},
     onExtractClick: (WebView) -> Unit,
     onBackClick: () -> Unit
 ) {
@@ -70,7 +78,7 @@ fun BrowserScreen(
     Scaffold(
         topBar = {
             AppTopBar(
-                title = if (state.webPageTitle.isNotBlank()) state.webPageTitle else "متصفح DeepSeek",
+                title = if (state.webPageTitle.isNotBlank()) state.webPageTitle else "متصفح المحادثات",
                 canGoBack = true,
                 onBackClick = onBackClick,
                 actions = {
@@ -92,12 +100,31 @@ fun BrowserScreen(
                 tonalElevation = 3.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
                 ) {
+                    // Smart scroll switch for lazy-loaded conversations
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "التمرير الذكي لتحميل المحادثات الطويلة",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Switch(
+                            checked = state.enableLongConversationScroll,
+                            onCheckedChange = onToggleScrollLoader,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     Button(
                         onClick = {
                             webViewRef?.let { wv -> onExtractClick(wv) }
@@ -118,7 +145,7 @@ fun BrowserScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (state.isExtracting) "جارٍ الاستخراج..." else "استخراج المحادثة الحالية",
+                            text = if (state.isExtracting) "جارٍ الاستخراج..." else "استخراج محادثة ${state.detectedPlatform.displayName}",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -133,13 +160,19 @@ fun BrowserScreen(
                 .fillMaxSize()
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // URL input bar
+                // URL input bar and detected platform chip
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    AssistChip(
+                        onClick = {},
+                        label = { Text(state.detectedPlatform.displayName) },
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+
                     OutlinedTextField(
                         value = inputUrl,
                         onValueChange = {
@@ -163,7 +196,7 @@ fun BrowserScreen(
                                 modifier = Modifier.testTag("browser_go_button")
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.ArrowForward,
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                     contentDescription = "الذهاب للرابط"
                                 )
                             }
@@ -191,7 +224,7 @@ fun BrowserScreen(
                             settings.setSupportZoom(true)
                             settings.builtInZoomControls = true
                             settings.displayZoomControls = false
-                            settings.userAgentString = settings.userAgentString + " DeepSeekExporter/1.0"
+                            settings.userAgentString = settings.userAgentString + " AIChatExporter/2.0"
 
                             webViewClient = object : WebViewClient() {
                                 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
@@ -207,6 +240,7 @@ fun BrowserScreen(
                             webChromeClient = object : WebChromeClient() {
                                 override fun onReceivedTitle(view: WebView?, title: String?) {
                                     super.onReceivedTitle(view, title)
+                                    title?.let { onPageTitleChange(it) }
                                 }
                             }
 
@@ -223,7 +257,7 @@ fun BrowserScreen(
 
             LoadingOverlay(
                 visible = state.isExtracting,
-                message = "جارٍ قراءة محادثة DeepSeek وسلسلة التفكير..."
+                message = state.statusMessage.ifBlank { "جارٍ استخراج المحادثة وسلاسل التفكير والأكواد..." }
             )
         }
     }

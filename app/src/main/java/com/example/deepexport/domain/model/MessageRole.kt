@@ -2,8 +2,9 @@ package com.example.deepexport.domain.model
 
 enum class MessageRole(val label: String) {
     User("المستخدم"),
-    Assistant("DeepSeek"),
-    System("النظام");
+    Assistant("المساعد الذكي"),
+    System("النظام"),
+    Unknown("غير محدد");
 
     companion object {
         fun fromString(value: String): MessageRole {
@@ -11,7 +12,8 @@ enum class MessageRole(val label: String) {
             return when {
                 lower.contains("user") || lower.contains("human") -> User
                 lower.contains("system") -> System
-                else -> Assistant
+                lower.contains("assistant") || lower.contains("bot") || lower.contains("model") || lower.contains("deepseek") || lower.contains("chatgpt") || lower.contains("claude") || lower.contains("gemini") -> Assistant
+                else -> Unknown
             }
         }
     }

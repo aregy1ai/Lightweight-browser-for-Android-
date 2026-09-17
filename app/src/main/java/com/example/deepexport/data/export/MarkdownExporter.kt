@@ -9,23 +9,29 @@ class MarkdownExporter {
         val sb = StringBuilder()
         sb.appendLine("# ${conversation.title}")
         sb.appendLine()
-        sb.appendLine("- **المصدر**: [${conversation.sourceUrl}](${conversation.sourceUrl})")
+        sb.appendLine("- **المنصة**: ${conversation.platform.displayName}")
+        if (conversation.sourceUrl.isNotBlank()) {
+            sb.appendLine("- **المصدر**: [${conversation.sourceUrl}](${conversation.sourceUrl})")
+        }
         sb.appendLine("- **تاريخ التصدير**: ${conversation.createdAt.toFormattedDate()}")
         sb.appendLine("- **عدد الرسائل**: ${conversation.messages.size}")
         sb.appendLine()
         sb.appendLine("---")
         sb.appendLine()
 
-        conversation.messages.forEachIndexed { index, msg ->
+        conversation.messages.forEachIndexed { _, msg ->
             when (msg.role) {
                 MessageRole.User -> {
                     sb.appendLine("### 👤 المستخدم")
                 }
                 MessageRole.Assistant -> {
-                    sb.appendLine("### 🤖 ديب سيك (DeepSeek)")
+                    sb.appendLine("### 🤖 ${conversation.platform.displayName}")
                 }
                 MessageRole.System -> {
                     sb.appendLine("### ⚙️ النظام")
+                }
+                MessageRole.Unknown -> {
+                    sb.appendLine("### 💬 رسالة")
                 }
             }
             sb.appendLine()
@@ -46,7 +52,7 @@ class MarkdownExporter {
             sb.appendLine()
         }
 
-        sb.appendLine("> *تم الاستخراج والتصدير بواسطة DeepSeek Chat Exporter*")
+        sb.appendLine("> *تم الاستخراج والتصدير بواسطة AI Chat Exporter*")
         return sb.toString()
     }
 }

@@ -2,10 +2,14 @@ package com.example.deepexport.core
 
 import android.content.Context
 import com.example.deepexport.data.export.FileStore
+import com.example.deepexport.data.export.HtmlExporter
 import com.example.deepexport.data.export.JsonExporter
 import com.example.deepexport.data.export.MarkdownExporter
 import com.example.deepexport.data.export.TxtExporter
+import com.example.deepexport.data.extraction.ExtractionCoordinator
 import com.example.deepexport.data.local.AppDatabase
+import com.example.deepexport.data.local.dao.ConversationDao
+import com.example.deepexport.data.local.dao.ExportHistoryDao
 import com.example.deepexport.data.repository.ConversationRepositoryImpl
 import com.example.deepexport.data.repository.ExportRepositoryImpl
 import com.example.deepexport.data.web.DeepSeekWebRepository
@@ -13,7 +17,6 @@ import com.example.deepexport.domain.model.ChatConversation
 import com.example.deepexport.domain.repository.ConversationRepository
 import com.example.deepexport.domain.repository.ExportRepository
 import com.example.deepexport.domain.usecase.ExportConversationUseCase
-import com.example.deepexport.domain.usecase.ExtractConversationUseCase
 import com.example.deepexport.domain.usecase.LoadHistoryUseCase
 import com.example.deepexport.domain.usecase.SaveConversationUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +28,14 @@ class AppContainer(private val context: Context) {
         AppDatabase.getInstance(context)
     }
 
+    val conversationDao: ConversationDao by lazy {
+        database.conversationDao()
+    }
+
+    val exportHistoryDao: ExportHistoryDao by lazy {
+        database.exportHistoryDao()
+    }
+
     val fileStore: FileStore by lazy {
         FileStore(context)
     }
@@ -32,9 +43,10 @@ class AppContainer(private val context: Context) {
     val txtExporter: TxtExporter by lazy { TxtExporter() }
     val markdownExporter: MarkdownExporter by lazy { MarkdownExporter() }
     val jsonExporter: JsonExporter by lazy { JsonExporter() }
+    val htmlExporter: HtmlExporter by lazy { HtmlExporter() }
 
-    val extractConversationUseCase: ExtractConversationUseCase by lazy {
-        ExtractConversationUseCase()
+    val extractionCoordinator: ExtractionCoordinator by lazy {
+        ExtractionCoordinator()
     }
 
     val deepSeekWebRepository: DeepSeekWebRepository by lazy {
@@ -42,16 +54,17 @@ class AppContainer(private val context: Context) {
     }
 
     val conversationRepository: ConversationRepository by lazy {
-        ConversationRepositoryImpl(database.conversationDao())
+        ConversationRepositoryImpl(conversationDao)
     }
 
     val exportRepository: ExportRepository by lazy {
         ExportRepositoryImpl(
             fileStore = fileStore,
-            exportHistoryDao = database.exportHistoryDao(),
+            exportHistoryDao = exportHistoryDao,
             txtExporter = txtExporter,
             markdownExporter = markdownExporter,
-            jsonExporter = jsonExporter
+            jsonExporter = jsonExporter,
+            htmlExporter = htmlExporter
         )
     }
 
