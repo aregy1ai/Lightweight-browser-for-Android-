@@ -218,7 +218,6 @@ fun BrowserScreen(
                         WebView(context).apply {
                             settings.javaScriptEnabled = true
                             settings.domStorageEnabled = true
-                            settings.databaseEnabled = true
                             settings.useWideViewPort = true
                             settings.loadWithOverviewMode = true
                             settings.setSupportZoom(true)
