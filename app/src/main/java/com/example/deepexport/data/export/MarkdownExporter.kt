@@ -2,9 +2,14 @@ package com.example.deepexport.data.export
 
 import com.example.deepexport.core.toFormattedDate
 import com.example.deepexport.domain.model.ChatConversation
+import com.example.deepexport.domain.model.ExportFormat
 import com.example.deepexport.domain.model.MessageRole
 
-class MarkdownExporter {
+class MarkdownExporter : ConversationExportFormatter {
+    override fun supports(format: ExportFormat): Boolean = format == ExportFormat.MARKDOWN
+
+    override fun format(conversation: ChatConversation): String = export(conversation)
+
     fun export(conversation: ChatConversation): String {
         val sb = StringBuilder()
         sb.appendLine("# ${conversation.title}")

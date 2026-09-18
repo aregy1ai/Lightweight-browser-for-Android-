@@ -6,4 +6,5 @@ object Routes {
     const val PREVIEW = "preview"
     const val EXPORT = "export"
     const val HISTORY = "history"
+    const val SETTINGS = "settings"
 }

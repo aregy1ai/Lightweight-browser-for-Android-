@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -54,6 +55,7 @@ fun HomeScreen(
     onSelectPlatform: (Platform) -> Unit,
     onOpenClick: () -> Unit,
     onHistoryClick: () -> Unit,
+    onSettingsClick: () -> Unit = {},
     onResetUrlClick: () -> Unit,
     onOpenSavedConversation: (ChatConversation) -> Unit
 ) {
@@ -63,6 +65,15 @@ fun HomeScreen(
                 title = "تصدير محادثات الذكاء الاصطناعي",
                 canGoBack = false,
                 actions = {
+                    IconButton(
+                        onClick = onSettingsClick,
+                        modifier = Modifier.testTag("home_settings_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "الإعدادات والمعايير"
+                        )
+                    }
                     IconButton(
                         onClick = onHistoryClick,
                         modifier = Modifier.testTag("home_history_button")

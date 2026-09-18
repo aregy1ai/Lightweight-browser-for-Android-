@@ -1,10 +1,15 @@
 package com.example.deepexport.data.export
 
 import com.example.deepexport.domain.model.ChatConversation
+import com.example.deepexport.domain.model.ExportFormat
 import org.json.JSONArray
 import org.json.JSONObject
 
-class JsonExporter {
+class JsonExporter : ConversationExportFormatter {
+    override fun supports(format: ExportFormat): Boolean = format == ExportFormat.JSON
+
+    override fun format(conversation: ChatConversation): String = export(conversation)
+
     fun export(conversation: ChatConversation): String {
         val root = JSONObject()
         root.put("id", conversation.id)

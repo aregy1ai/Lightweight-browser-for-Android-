@@ -12,10 +12,12 @@ import com.example.deepexport.data.local.dao.ConversationDao
 import com.example.deepexport.data.local.dao.ExportHistoryDao
 import com.example.deepexport.data.repository.ConversationRepositoryImpl
 import com.example.deepexport.data.repository.ExportRepositoryImpl
+import com.example.deepexport.data.repository.SettingsRepositoryImpl
 import com.example.deepexport.data.web.DeepSeekWebRepository
 import com.example.deepexport.domain.model.ChatConversation
 import com.example.deepexport.domain.repository.ConversationRepository
 import com.example.deepexport.domain.repository.ExportRepository
+import com.example.deepexport.domain.repository.SettingsRepository
 import com.example.deepexport.domain.usecase.ExportConversationUseCase
 import com.example.deepexport.domain.usecase.LoadHistoryUseCase
 import com.example.deepexport.domain.usecase.SaveConversationUseCase
@@ -66,6 +68,10 @@ class AppContainer(private val context: Context) {
             jsonExporter = jsonExporter,
             htmlExporter = htmlExporter
         )
+    }
+
+    val settingsRepository: SettingsRepository by lazy {
+        SettingsRepositoryImpl(context)
     }
 
     val exportConversationUseCase: ExportConversationUseCase by lazy {

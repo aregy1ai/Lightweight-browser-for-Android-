@@ -20,7 +20,7 @@ object ExtractionJs {
                 // 1. Detect Conversation Title
                 let pageTitle = document.title || 'DeepSeek Chat';
                 const titleCandidate = document.querySelector(
-                    '[class*="session-item-selected"] [class*="title"], [class*="chat-session-title"], header [class*="title"], header h1'
+                    '[class*="session-item-selected"] [class*="title"], [class*="chat-session-title"], [data-testid="chat-title"], header [class*="title"], header h1'
                 );
                 if (titleCandidate && titleCandidate.innerText.trim()) {
                     pageTitle = titleCandidate.innerText.trim();
@@ -35,14 +35,16 @@ object ExtractionJs {
 
                     // Remove UI clutter (copy buttons, feedback icons, action toolbars)
                     clone.querySelectorAll(
-                        'button, .ds-icon-button, [class*="copy"], [class*="feedback"], [class*="action"], svg'
+                        'button, .ds-icon-button, [class*="copy"], [class*="feedback"], [class*="action"], svg, [aria-hidden="true"]'
                     ).forEach(el => el.remove());
 
                     // Replace code blocks with proper Markdown fences
                     clone.querySelectorAll('pre').forEach(pre => {
                         const codeElem = pre.querySelector('code') || pre;
-                        const langClass = (codeElem.className || '').match(/language-([a-zA-Z0-9#+_-]+)/);
-                        const lang = langClass ? langClass[1] : '';
+                        const langMatch = (codeElem.className || '').match(/language-([a-zA-Z0-9#+_-]+)/) ||
+                                          (pre.className || '').match(/language-([a-zA-Z0-9#+_-]+)/);
+                        const langAttr = codeElem.getAttribute('data-lang') || pre.getAttribute('data-lang') || '';
+                        const lang = langMatch ? langMatch[1] : langAttr;
                         const codeText = codeElem.innerText || codeElem.textContent || '';
                         const fenced = document.createTextNode('\n```' + lang + '\n' + codeText.trim() + '\n```\n');
                         pre.parentNode.replaceChild(fenced, pre);
@@ -55,19 +57,21 @@ object ExtractionJs {
                 const seenContents = new Set();
 
                 // 3. Specific DeepSeek Chat Bubble Selectors:
-                // - User bubbles: .f9bf7997, [class*="f9bf7997"], div[class*="fa81"], .chat-message-user, [data-role="user"], .ds-markdown--user
+                // - User bubbles: .f9bf7997, [class*="f9bf7997"], div[class*="fa81"], .chat-message-user, [data-role="user"], .ds-markdown--user, [class*="dad65929"]
                 // - Assistant bubbles: .ds-markdown, div[class*="fbb737a4"], div.fbb737a4, [data-role="assistant"], .chat-message-assistant, .ds-message
-                // - Thinking blocks (DeepSeek R1): .ds-think, .ds-think-content, div[class*="f6d670"], div.f6d670, details
+                // - Thinking blocks (DeepSeek R1): .ds-think, .ds-think-content, div[class*="f6d670"], div.f6d670, details, [class*="reasoning"]
                 const bubbleSelectors = [
-                    // DeepSeek Turn Containers
-                    'div[class*="chat-message"]',
-                    'div[class*="chat-item"]',
+                    'div[data-testid="chat-message"]',
                     'div[data-role="user"]',
                     'div[data-role="assistant"]',
+                    'div[class*="chat-message"]',
+                    'div[class*="chat-item"]',
                     'div[class*="fbb737a4"]',
                     'div[class*="f9bf7997"]',
                     'div[class*="fa81"]',
+                    'div[class*="dad65929"]',
                     '.ds-message',
+                    '.ds-chat-turn',
                     'div[class*="ds-markdown"]'
                 ].join(', ');
 
@@ -76,16 +80,17 @@ object ExtractionJs {
                 if (foundBubbles && foundBubbles.length > 0) {
                     foundBubbles.forEach(bubble => {
                         // Determine Role:
-                        // DeepSeek user bubbles commonly contain class 'f9bf7997', 'fa81', 'user', or data-role='user'
                         const isUser = bubble.matches('[data-role="user"]') ||
                                        bubble.matches('div[class*="f9bf7997"]') ||
                                        bubble.matches('div[class*="fa81"]') ||
+                                       bubble.matches('div[class*="dad65929"]') ||
                                        (bubble.className && (
                                            bubble.className.includes('f9bf7997') ||
                                            bubble.className.includes('fa81') ||
+                                           bubble.className.includes('dad65929') ||
                                            bubble.className.toLowerCase().includes('user')
                                        )) ||
-                                       bubble.querySelector('[class*="f9bf7997"], [class*="fa81"], [data-role="user"], [class*="user"]') !== null;
+                                       bubble.querySelector('[class*="f9bf7997"], [class*="fa81"], [class*="dad65929"], [data-role="user"], [class*="user"]') !== null;
 
                         const role = isUser ? 'user' : 'assistant';
 
@@ -106,13 +111,15 @@ object ExtractionJs {
                         // Extract Message Content
                         let content = '';
                         if (isUser) {
-                            // Target user bubble text element
-                            const userTextElem = bubble.querySelector('[class*="f9bf7997"], [class*="fa81"], [class*="text"]') || bubble;
+                            const userTextElem = bubble.querySelector(
+                                '[class*="f9bf7997"], [class*="fa81"], [class*="dad65929"], [class*="text"], p'
+                            ) || bubble;
                             content = extractFormattedNode(userTextElem);
                         } else {
-                            // Assistant message: Find .ds-markdown or content container
-                            const assistantContentElem = bubble.querySelector('.ds-markdown, [class*="markdown"], [class*="content"]') || bubble;
-                            
+                            const assistantContentElem = bubble.querySelector(
+                                '.ds-markdown, [class*="markdown"], [class*="content"]'
+                            ) || bubble;
+
                             // Clone to strip thinking block from main text
                             const clone = assistantContentElem.cloneNode(true);
                             clone.querySelectorAll(
@@ -122,6 +129,17 @@ object ExtractionJs {
                             content = extractFormattedNode(clone);
                         }
 
+                        // Extract timestamp if present
+                        let timestamp = null;
+                        const timeElem = bubble.querySelector('time, [class*="time"], [data-timestamp]');
+                        if (timeElem) {
+                            const tsAttr = timeElem.getAttribute('datetime') || timeElem.getAttribute('data-timestamp');
+                            if (tsAttr) {
+                                const parsed = Date.parse(tsAttr);
+                                if (!isNaN(parsed)) timestamp = parsed;
+                            }
+                        }
+
                         // Validate and deduplicate
                         if (content && content.length > 0 && !seenContents.has(content)) {
                             seenContents.add(content);
@@ -129,13 +147,14 @@ object ExtractionJs {
                                 role: role,
                                 content: content,
                                 thinking: thinking,
-                                model: isUser ? null : 'DeepSeek'
+                                model: isUser ? null : 'DeepSeek',
+                                timestamp: timestamp
                             });
                         }
                     });
                 }
 
-                // 4. Fallback if class hashes changed
+                // 4. Fallback if obfuscated class hashes changed
                 if (extractedMessages.length === 0) {
                     const allMarkdowns = document.querySelectorAll('.ds-markdown, [class*="markdown-body"], article, main div');
                     allMarkdowns.forEach((el, index) => {
