@@ -1,6 +1,7 @@
 package com.example.deepexport.ui.screen.preview
 
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -41,6 +42,9 @@ import com.example.deepexport.domain.model.ExportFormat
 import com.example.deepexport.ui.components.AppTopBar
 import com.example.deepexport.ui.components.ConversationTextViewer
 import com.example.deepexport.ui.components.ExportFormatChips
+import com.example.deepexport.ui.components.HtmlPreviewCard
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 
 @Composable
 fun PreviewScreen(
@@ -50,6 +54,7 @@ fun PreviewScreen(
     onBackClick: () -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
+    var htmlViewMode by remember { mutableIntStateOf(0) }
     val tabs = listOf("عرض الرسائل", "معاينة التنسيق (${state.selectedFormat.extension.uppercase()})")
 
     Scaffold(
@@ -147,30 +152,57 @@ fun PreviewScreen(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(12.dp)
-                                    .verticalScroll(rememberScrollState())
-                                    .horizontalScroll(rememberScrollState())
+                        if (state.selectedFormat == ExportFormat.HTML) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.padding(bottom = 8.dp)
                             ) {
-                                Text(
-                                    text = state.formattedPreviewText,
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontFamily = FontFamily.Monospace,
-                                        fontSize = 12.sp
-                                    ),
-                                    modifier = Modifier.testTag("formatted_preview_text")
+                                FilterChip(
+                                    selected = htmlViewMode == 0,
+                                    onClick = { htmlViewMode = 0 },
+                                    label = { Text("معاينة منسقة (Formatted)") }
                                 )
+                                FilterChip(
+                                    selected = htmlViewMode == 1,
+                                    onClick = { htmlViewMode = 1 },
+                                    label = { Text("كود المصدر (Source Code)") }
+                                )
+                            }
+                        }
+
+                        if (state.selectedFormat == ExportFormat.HTML && htmlViewMode == 0) {
+                            HtmlPreviewCard(
+                                html = state.formattedPreviewText,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                            )
+                        } else {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(12.dp)
+                                        .verticalScroll(rememberScrollState())
+                                        .horizontalScroll(rememberScrollState())
+                                ) {
+                                    Text(
+                                        text = state.formattedPreviewText,
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontFamily = FontFamily.Monospace,
+                                            fontSize = 12.sp
+                                        ),
+                                        modifier = Modifier.testTag("formatted_preview_text")
+                                    )
+                                }
                             }
                         }
                     }

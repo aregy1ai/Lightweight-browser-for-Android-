@@ -6,10 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.deepexport.domain.model.AppSettings
 import com.example.deepexport.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -18,28 +16,29 @@ class SettingsViewModel(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
-    val uiState: StateFlow<SettingsUiState> = combine(
-        settingsRepository.settingsFlow,
-        _uiState
-    ) { settings, currentUiState ->
-        currentUiState.copy(
-            settings = settings,
-            thresholdInput = if (currentUiState.errorMessage == null) settings.threshold.toString() else currentUiState.thresholdInput
-        )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = SettingsUiState()
-    )
+    val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            settingsRepository.settingsFlow.collect { settings ->
+                _uiState.update { current ->
+                    current.copy(
+                        settings = settings,
+                        thresholdInput = if (current.errorMessage == null) settings.threshold.toString() else current.thresholdInput
+                    )
+                }
+            }
+        }
+    }
 
     fun onThresholdChange(newThreshold: Double) {
-        viewModelScope.launch {
-            if (newThreshold in 0.0..1.0) {
-                _uiState.update { it.copy(errorMessage = null, thresholdInput = newThreshold.toString()) }
+        if (newThreshold in 0.0..1.0) {
+            _uiState.update { it.copy(errorMessage = null, thresholdInput = newThreshold.toString()) }
+            viewModelScope.launch {
                 settingsRepository.updateThreshold(newThreshold)
-            } else {
-                _uiState.update { it.copy(errorMessage = "يجب أن تكون القيمة بين 0.0 و 1.0") }
             }
+        } else {
+            _uiState.update { it.copy(errorMessage = "يجب أن تكون القيمة بين 0.0 و 1.0") }
         }
     }
 
