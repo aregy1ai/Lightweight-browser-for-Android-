@@ -41,7 +41,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import com.example.deepexport.core.ShareHelper
 import com.example.deepexport.core.toFormattedDate
+import com.example.deepexport.domain.model.ExportFormat
 import com.example.deepexport.ui.components.AppTopBar
 import java.io.File
 
@@ -173,21 +175,12 @@ fun HistoryScreen(
                                 onClick = {
                                     item.filePath?.let { path ->
                                         val file = File(path)
-                                        if (file.exists()) {
-                                            val uri = FileProvider.getUriForFile(
-                                                context,
-                                                "${context.packageName}.fileprovider",
-                                                file
-                                            )
-                                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                                type = item.format?.mimeType ?: "text/plain"
-                                                putExtra(Intent.EXTRA_STREAM, uri)
-                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                            }
-                                            context.startActivity(
-                                                Intent.createChooser(shareIntent, "مشاركة الملف")
-                                            )
-                                        }
+                                        ShareHelper.shareFile(
+                                            context = context,
+                                            file = file,
+                                            format = item.format ?: ExportFormat.TXT,
+                                            chooserTitle = "مشاركة الملف (${item.fileName ?: "محادثة"})"
+                                        )
                                     }
                                 }
                             ) {

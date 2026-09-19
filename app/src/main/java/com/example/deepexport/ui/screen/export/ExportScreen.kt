@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import com.example.deepexport.core.ShareHelper
 import com.example.deepexport.domain.model.ExportFormat
 import com.example.deepexport.ui.components.AppTopBar
 import com.example.deepexport.ui.components.ErrorBanner
@@ -206,21 +207,12 @@ fun ExportScreen(
                                     onClick = {
                                         result.filePath?.let { path ->
                                             val file = File(path)
-                                            if (file.exists()) {
-                                                val uri = FileProvider.getUriForFile(
-                                                    context,
-                                                    "${context.packageName}.fileprovider",
-                                                    file
-                                                )
-                                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                                    type = result.format?.mimeType ?: "text/plain"
-                                                    putExtra(Intent.EXTRA_STREAM, uri)
-                                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                                }
-                                                context.startActivity(
-                                                    Intent.createChooser(shareIntent, "مشاركة المحادثة المصدّرة")
-                                                )
-                                            }
+                                            ShareHelper.shareFile(
+                                                context = context,
+                                                file = file,
+                                                format = result.format ?: ExportFormat.TXT,
+                                                chooserTitle = "مشاركة المحادثة المصدّرة"
+                                            )
                                         }
                                     },
                                     modifier = Modifier

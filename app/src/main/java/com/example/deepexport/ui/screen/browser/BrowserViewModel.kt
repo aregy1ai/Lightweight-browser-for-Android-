@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class BrowserViewModel(
@@ -73,9 +74,12 @@ class BrowserViewModel(
                     val conversation = extractionResult.conversation
                     container.setActiveConversation(conversation)
 
-                    // Auto-save to local history in Room DB
+                    // Auto-save to local history in Room DB if enabled in settings
                     launch(Dispatchers.IO) {
-                        container.saveConversationUseCase(conversation)
+                        val currentSettings = container.settingsRepository.settingsFlow.first()
+                        if (currentSettings.autoSaveEnabled) {
+                            container.saveConversationUseCase(conversation)
+                        }
                     }
 
                     _uiState.value = _uiState.value.copy(

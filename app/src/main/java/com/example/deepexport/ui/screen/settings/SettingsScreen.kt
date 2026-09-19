@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Speed
@@ -45,6 +46,8 @@ fun SettingsScreen(
     onThresholdChange: (Double) -> Unit,
     onFailOnNewMetricChange: (Boolean) -> Unit,
     onFailOnMissingMetricChange: (Boolean) -> Unit,
+    onAutoSaveChange: (Boolean) -> Unit = {},
+    onAutoScrollChange: (Boolean) -> Unit = {},
     onSave: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -54,7 +57,7 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             AppTopBar(
-                title = "إعدادات الأداء والمعايير",
+                title = "الإعدادات العامة والتخزين",
                 canGoBack = true,
                 onBackClick = onBack
             )
@@ -89,13 +92,13 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "ضبط معايير الأداء والقياس",
+                            text = "إعدادات حفظ واستخراج المحادثات",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                         Text(
-                            text = "إدارة عتبة التراجع (Threshold) وسياسات التحقق التلقائي",
+                            text = "تحكم في الحفظ التلقائي وسلوك استخراج البيانات",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
                         )
@@ -103,7 +106,89 @@ fun SettingsScreen(
                 }
             }
 
-            // Threshold Card
+            // Auto-Save Chat Sessions Card
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Bookmark,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "تخزين الجلسات (Chat Sessions)",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "حفظ المحادثات تلقائياً في قاعدة البيانات",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "تفعيل أو تعطيل الحفظ التلقائي في Room عند إنهاء الاستخراج أو إغلاق جلسة المحادثة.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Switch(
+                            checked = settings.autoSaveEnabled,
+                            onCheckedChange = onAutoSaveChange,
+                            modifier = Modifier.testTag("settings_auto_save_switch")
+                        )
+                    }
+
+                    // Auto Scroll for long conversations
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "التمرير التلقائي للمحادثات الطويلة",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "التمرير التدريجي لتحميل كافة الرسائل المخفية قبل الاستخراج.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Switch(
+                            checked = settings.autoScrollEnabled,
+                            onCheckedChange = onAutoScrollChange,
+                            modifier = Modifier.testTag("settings_auto_scroll_switch")
+                        )
+                    }
+                }
+            }
+
+            // Benchmark & Threshold Card
             Card(
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -251,7 +336,7 @@ fun SettingsScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "تم نقل كافة الحالات إلى StateFlow بدون Scopes داخل الـ Composables، مع استهلاك Lifecycle-aware.",
+                            text = "تم نقل كافة الحالات إلى StateFlow مع استهلاك آمن لدورة الحياة (Lifecycle-aware) وتخزين محلي فوري.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

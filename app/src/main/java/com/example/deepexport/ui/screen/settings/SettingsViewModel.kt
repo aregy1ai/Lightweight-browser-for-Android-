@@ -73,6 +73,12 @@ class SettingsViewModel(
         }
     }
 
+    fun onAutoSaveChange(value: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateAutoSave(value)
+        }
+    }
+
     fun saveSettings() {
         val current = uiState.value
         val parsedThreshold = current.thresholdInput.toDoubleOrNull() ?: current.settings.threshold

@@ -9,5 +9,6 @@ interface SettingsRepository {
     suspend fun updateFailOnNewMetric(value: Boolean)
     suspend fun updateFailOnMissingMetric(value: Boolean)
     suspend fun updateAutoScroll(value: Boolean)
+    suspend fun updateAutoSave(value: Boolean)
     suspend fun saveSettings(settings: AppSettings)
 }

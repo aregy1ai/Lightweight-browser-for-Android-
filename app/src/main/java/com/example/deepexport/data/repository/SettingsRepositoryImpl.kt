@@ -25,6 +25,7 @@ class SettingsRepositoryImpl(
         val FAIL_ON_NEW_METRIC = booleanPreferencesKey("fail_on_new_metric")
         val FAIL_ON_MISSING_METRIC = booleanPreferencesKey("fail_on_missing_metric")
         val AUTO_SCROLL = booleanPreferencesKey("auto_scroll_enabled")
+        val AUTO_SAVE = booleanPreferencesKey("auto_save_enabled")
         val DEFAULT_FORMAT = stringPreferencesKey("default_export_format")
     }
 
@@ -34,6 +35,7 @@ class SettingsRepositoryImpl(
             failOnNewMetric = prefs[PreferencesKeys.FAIL_ON_NEW_METRIC] ?: false,
             failOnMissingMetric = prefs[PreferencesKeys.FAIL_ON_MISSING_METRIC] ?: false,
             autoScrollEnabled = prefs[PreferencesKeys.AUTO_SCROLL] ?: true,
+            autoSaveEnabled = prefs[PreferencesKeys.AUTO_SAVE] ?: true,
             defaultFormat = prefs[PreferencesKeys.DEFAULT_FORMAT]?.let {
                 try { ExportFormat.valueOf(it) } catch (_: Exception) { ExportFormat.MARKDOWN }
             } ?: ExportFormat.MARKDOWN
@@ -64,12 +66,19 @@ class SettingsRepositoryImpl(
         }
     }
 
+    override suspend fun updateAutoSave(value: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferencesKeys.AUTO_SAVE] = value
+        }
+    }
+
     override suspend fun saveSettings(settings: AppSettings) {
         context.dataStore.edit { prefs ->
             prefs[PreferencesKeys.THRESHOLD] = settings.threshold
             prefs[PreferencesKeys.FAIL_ON_NEW_METRIC] = settings.failOnNewMetric
             prefs[PreferencesKeys.FAIL_ON_MISSING_METRIC] = settings.failOnMissingMetric
             prefs[PreferencesKeys.AUTO_SCROLL] = settings.autoScrollEnabled
+            prefs[PreferencesKeys.AUTO_SAVE] = settings.autoSaveEnabled
             prefs[PreferencesKeys.DEFAULT_FORMAT] = settings.defaultFormat.name
         }
     }

@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.deepexport.data.web.WebViewBridge
 import com.example.deepexport.ui.components.AppTopBar
+import com.example.deepexport.ui.components.DeepSeekChatWebView
 import com.example.deepexport.ui.components.ErrorBanner
 import com.example.deepexport.ui.components.LoadingOverlay
 
@@ -212,45 +213,22 @@ fun BrowserScreen(
                     ErrorBanner(message = it)
                 }
 
-                // WebView
-                AndroidView(
-                    factory = { context ->
-                        WebView(context).apply {
-                            settings.javaScriptEnabled = true
-                            settings.domStorageEnabled = true
-                            settings.useWideViewPort = true
-                            settings.loadWithOverviewMode = true
-                            settings.setSupportZoom(true)
-                            settings.builtInZoomControls = true
-                            settings.displayZoomControls = false
-                            settings.userAgentString = settings.userAgentString + " AIChatExporter/2.0"
-
-                            webViewClient = object : WebViewClient() {
-                                override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                                    super.onPageStarted(view, url, favicon)
-                                }
-
-                                override fun onPageFinished(view: WebView?, url: String?) {
-                                    super.onPageFinished(view, url)
-                                    url?.let { onUrlChange(it) }
-                                }
-                            }
-
-                            webChromeClient = object : WebChromeClient() {
-                                override fun onReceivedTitle(view: WebView?, title: String?) {
-                                    super.onReceivedTitle(view, title)
-                                    title?.let { onPageTitleChange(it) }
-                                }
-                            }
-
-                            loadUrl(state.url)
-                            webViewRef = this
-                        }
-                    },
+                // WebView component with JavaScript interface and DOM extraction support
+                DeepSeekChatWebView(
+                    url = state.url,
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .testTag("browser_webview")
+                        .testTag("browser_webview"),
+                    onPageTitleReceived = { title ->
+                        onPageTitleChange(title)
+                    },
+                    onPageFinished = { _, currentUrl ->
+                        onUrlChange(currentUrl)
+                    },
+                    onWebViewCreated = { wv ->
+                        webViewRef = wv
+                    }
                 )
             }
 

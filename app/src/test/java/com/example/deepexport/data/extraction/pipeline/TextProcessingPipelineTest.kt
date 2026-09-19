@@ -13,7 +13,8 @@ class TextProcessingPipelineTest {
     fun `normalizeText removes zero-width spaces and collapses whitespaces`() {
         val raw = "Hello\u200b   world!\u00a0\nHow are   you?"
         val normalized = TextProcessingPipeline.normalizeText(raw)
-        assertEquals("Hello world!\nHow are you?", normalized)
+        val expected = "Hello world!\nHow are you?"
+        assertEquals(expected, normalized)
     }
 
     @Test

@@ -5,5 +5,6 @@ data class AppSettings(
     val failOnNewMetric: Boolean = false,
     val failOnMissingMetric: Boolean = false,
     val autoScrollEnabled: Boolean = true,
+    val autoSaveEnabled: Boolean = true,
     val defaultFormat: ExportFormat = ExportFormat.MARKDOWN
 )

@@ -135,6 +135,8 @@ fun AppNavHost(
                 onThresholdChange = settingsViewModel::onThresholdChange,
                 onFailOnNewMetricChange = settingsViewModel::onFailOnNewMetricChange,
                 onFailOnMissingMetricChange = settingsViewModel::onFailOnMissingMetricChange,
+                onAutoSaveChange = settingsViewModel::onAutoSaveChange,
+                onAutoScrollChange = settingsViewModel::onAutoScrollChange,
                 onSave = settingsViewModel::saveSettings,
                 onBack = { navController.popBackStack() },
                 isSaved = state.isSaved,

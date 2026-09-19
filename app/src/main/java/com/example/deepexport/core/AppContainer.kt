@@ -1,6 +1,7 @@
 package com.example.deepexport.core
 
 import android.content.Context
+import com.example.deepexport.data.export.ChatExportConversionService
 import com.example.deepexport.data.export.FileStore
 import com.example.deepexport.data.export.HtmlExporter
 import com.example.deepexport.data.export.JsonExporter
@@ -46,6 +47,13 @@ class AppContainer(private val context: Context) {
     val markdownExporter: MarkdownExporter by lazy { MarkdownExporter() }
     val jsonExporter: JsonExporter by lazy { JsonExporter() }
     val htmlExporter: HtmlExporter by lazy { HtmlExporter() }
+    val chatExportConversionService: ChatExportConversionService by lazy {
+        ChatExportConversionService(
+            txtExporter = txtExporter,
+            markdownExporter = markdownExporter,
+            jsonExporter = jsonExporter
+        )
+    }
 
     val extractionCoordinator: ExtractionCoordinator by lazy {
         ExtractionCoordinator()
